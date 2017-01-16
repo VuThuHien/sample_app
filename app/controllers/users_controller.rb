@@ -1,7 +1,7 @@
 class UsersController < ApplicationController
   before_action :logged_in_user, except: [:new, :show, :create]
   before_action :find_user, except: [:index, :new, :create]
-  before_action :correct_user, only: [:show, :edit, :update]
+  before_action :correct_user, only: [:edit, :update]
   before_action :admin_user, only: :destroy
 
   def index
@@ -9,11 +9,15 @@ class UsersController < ApplicationController
   end
 
   def show
-    unless @user
-      flash[:danger] = "User not found!"
-      redirect_to root_path
+    redirect_to root_url and return unless @user.activated?
+    @microposts = @user.microposts.order_desc.paginate page: params[:page]
+    unless @user.current_user? current_user
+      @relation = if current_user.following? @user
+        current_user.active_relationships.find_by followed_id: @user.id
+      else
+        current_user.active_relationships.build
+      end
     end
-    @microposts = @user.microposts.paginate page: params[:page]
   end
 
   def new
